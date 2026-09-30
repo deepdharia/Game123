@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 123 game launcher foreground: three merging number-tiles (violet/cyan/amber) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M29,20 H45 Q52,20 52,27 V43 Q52,50 45,50 H29 Q22,50 22,43 V27 Q22,20 29,20 Z" />
+    <path
+        android:fillColor="#22D3EE"
+        android:pathData="M63,20 H79 Q86,20 86,27 V43 Q86,50 79,50 H63 Q56,50 56,43 V27 Q56,20 63,20 Z" />
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M46,54 H62 Q69,54 69,61 V77 Q69,84 62,84 H46 Q39,84 39,77 V61 Q39,54 46,54 Z" />
+</vector>
