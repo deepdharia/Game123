@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="glass">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>123 — Number Puzzle</title>
+<meta name="description" content="123 is a 2048-style number puzzle with real math: 1+2=3, then double all the way to 1536. Free, offline, no ads.">
+<meta name="theme-color" content="#1a1033">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%237c3aed'/%3E%3Ctext x='50' y='70' font-size='40' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E12%3C/text%3E%3C/svg%3E">
+<style>
+/* ================= THEMES (CSS variables only — game logic never touches these) ================= */
+:root, [data-theme="glass"]{
+  --bg: radial-gradient(120% 100% at 20% 0%, #3b1d5e 0%, #1a1033 55%, #0d1b3e 100%);
+  --text:#ffffff; --muted:rgba(255,255,255,.62);
+  --board:rgba(255,255,255,.07); --board-border:rgba(255,255,255,.16);
+  --cell:rgba(255,255,255,.055);
+  --btn:rgba(255,255,255,.12); --btn-text:#fff; --btn-border:rgba(255,255,255,.16);
+  --accent:#a78bfa; --card:rgba(20,12,40,.82);
+  --t0:#e0e7ff; --t1:#c7d2fe; --t2:#a5b4fc; --t3:#818cf8; --t4:#6366f1;
+  --t5:#4f46e5; --t6:#7c3aed; --t7:#9333ea; --t8:#f59e0b; --t9:#fbbf24;
+  --tf0:#1e1b4b; --tf1:#1e1b4b; --tf2:#1e1b4b; --tf3:#ffffff; --tf4:#ffffff;
+  --tf5:#ffffff; --tf6:#ffffff; --tf7:#ffffff; --tf8:#1c1005; --tf9:#1c1005;
+  --tile-shadow:0 4px 14px rgba(0,0,0,.35);
+}
+[data-theme="paper"]{
+  --bg: linear-gradient(160deg, #f7f1de 0%, #efe3c8 100%);
+  --text:#3e2f1c; --muted:rgba(62,47,28,.6);
+  --board:#e6d7b4; --board-border:#d3bf92;
+  --cell:#ddcda6;
+  --btn:#fffaf0; --btn-text:#3e2f1c; --btn-border:#d3bf92;
+  --accent:#b3541e; --card:#fffaf0;
+  --t0:#fbf6e9; --t1:#f5ecd4; --t2:#efdfb8; --t3:#e8cf9c; --t4:#dfb978;
+  --t5:#c98f3d; --t6:#b3541e; --t7:#93390f; --t8:#6d2808; --t9:#3e2f1c;
+  --tf0:#3e2f1c; --tf1:#3e2f1c; --tf2:#3e2f1c; --tf3:#3e2f1c; --tf4:#3e2f1c;
+  --tf5:#ffffff; --tf6:#ffffff; --tf7:#ffffff; --tf8:#ffffff; --tf9:#f7f1de;
+  --tile-shadow:0 3px 8px rgba(62,47,28,.25);
+}
+[data-theme="neon"]{
+  --bg: radial-gradient(120% 100% at 50% 0%, #0b0b25 0%, #050510 70%);
+  --text:#e8f6ff; --muted:rgba(232,246,255,.55);
+  --board:rgba(0,255,255,.05); --board-border:rgba(0,255,255,.22);
+  --cell:rgba(0,255,255,.05);
+  --btn:rgba(0,255,255,.08); --btn-text:#aef3ff; --btn-border:rgba(0,255,255,.25);
+  --accent:#22d3ee; --card:rgba(5,5,20,.92);
+  --t0:#0e2a3a; --t1:#0f3a4d; --t2:#155e75; --t3:#0e7490; --t4:#0891b2;
+  --t5:#06b6d4; --t6:#22d3ee; --t7:#a5f3fc; --t8:#f0abfc; --t9:#fde68a;
+  --tf0:#aef3ff; --tf1:#aef3ff; --tf2:#e0fbff; --tf3:#04121a; --tf4:#04121a;
+  --tf5:#04121a; --tf6:#04121a; --tf7:#04121a; --tf8:#2b0a2e; --tf9:#3a2a05;
+  --tile-shadow:0 0 12px rgba(34,211,238,.35);
+}
+[data-theme="classic"]{
+  --bg:#faf8ef;
+  --text:#776e65; --muted:rgba(119,110,101,.75);
+  --board:#bbada0; --board-border:#bbada0;
+  --cell:rgba(238,228,218,.35);
+  --btn:#8f7a66; --btn-text:#f9f6f2; --btn-border:#8f7a66;
+  --accent:#8f7a66; --card:#faf8ef;
+  --t0:#eee4da; --t1:#ede0c8; --t2:#f2b179; --t3:#f59563; --t4:#f67c5f;
+  --t5:#f65e3b; --t6:#edcf72; --t7:#edcc61; --t8:#edc850; --t9:#3c3a32;
+  --tf0:#776e65; --tf1:#776e65; --tf2:#f9f6f2; --tf3:#f9f6f2; --tf4:#f9f6f2;
+  --tf5:#f9f6f2; --tf6:#f9f6f2; --tf7:#f9f6f2; --tf8:#f9f6f2; --tf9:#f9f6f2;
+  --tile-shadow:0 3px 8px rgba(119,110,101,.25);
+}
+/* ================= LAYOUT ================= */
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;min-height:100%;}
+body{
+  background:var(--bg); background-attachment:fixed; color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  display:flex; justify-content:center; padding:18px 14px 40px;
+  user-select:none; -webkit-user-select:none;
+}
+[data-theme="paper"] body, [data-theme="paper"] h1{font-family:Georgia,"Times New Roman",serif;}
+.wrap{width:100%; max-width:440px;}
+header{display:flex; justify-content:space-between; align-items:flex-end; gap:10px;}
+h1{font-size:52px; margin:0; line-height:1; letter-spacing:-1px;}
+[data-theme="glass"] h1{background:linear-gradient(135deg,#c4b5fd,#f0abfc,#fde68a); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.tag{margin:4px 0 0; color:var(--muted); font-size:13px;}
+.scores{display:flex; gap:8px;}
+.score-box{background:var(--board); border:1px solid var(--board-border); border-radius:10px;
+  padding:8px 12px; text-align:center; min-width:74px; backdrop-filter:blur(8px);}
+.score-box span{display:block; font-size:10px; letter-spacing:1px; color:var(--muted);}
+.score-box b{font-size:20px;}
+.toolbar{display:flex; gap:8px; margin:14px 0 10px; flex-wrap:wrap;}
+.toolbar button{
+  flex:1 1 auto; background:var(--btn); color:var(--btn-text); border:1px solid var(--btn-border);
+  border-radius:10px; padding:10px 6px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;
+}
+.toolbar button:active{transform:scale(.96);}
+.toolbar button i{font-style:normal; opacity:.75; font-size:12px;}
+.daily-badge{background:var(--board); border:1px solid var(--board-border); border-radius:10px;
+  padding:8px 12px; font-size:13px; margin-bottom:10px; color:var(--muted);}
+.hidden{display:none !important;}
+#boardWrap{position:relative; width:100%; aspect-ratio:1/1; touch-action:none;}
+#board{position:absolute; inset:0; background:var(--board); border:1px solid var(--board-border);
+  border-radius:14px; backdrop-filter:blur(10px); overflow:hidden;}
+[data-theme="glass"] #board{box-shadow:0 12px 40px rgba(0,0,0,.35);}
+.cell{position:absolute; top:0; left:0; background:var(--cell); border-radius:8px;}
+#tiles{position:absolute; inset:0;}
+.tile{position:absolute; top:0; left:0; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-weight:800; box-shadow:var(--tile-shadow); transition:transform 120ms ease-in-out; will-change:transform;}
+.tile[data-tier="0"]{background:var(--t0);color:var(--tf0);}
+.tile[data-tier="1"]{background:var(--t1);color:var(--tf1);}
+.tile[data-tier="2"]{background:var(--t2);color:var(--tf2);}
+.tile[data-tier="3"]{background:var(--t3);color:var(--tf3);}
+.tile[data-tier="4"]{background:var(--t4);color:var(--tf4);}
+.tile[data-tier="5"]{background:var(--t5);color:var(--tf5);}
+.tile[data-tier="6"]{background:var(--t6);color:var(--tf6);}
+.tile[data-tier="7"]{background:var(--t7);color:var(--tf7);}
+.tile[data-tier="8"]{background:var(--t8);color:var(--tf8);}
+.tile[data-tier="9"]{background:var(--t9);color:var(--tf9);}
+@keyframes pop{0%{scale:.55;}55%{scale:1.14;}100%{scale:1;}}
+.tile.pop{animation:pop 160ms ease-out;}
+@keyframes appear{from{scale:0;}to{scale:1;}}
+.tile.appear{animation:appear 140ms ease-out;}
+.hint{color:var(--muted); font-size:13px; line-height:1.55; margin:14px 2px 6px;}
+.hint b{color:var(--text);}
+.stats{color:var(--muted); font-size:12px; margin:4px 2px; line-height:1.6;}
+/* ================= OVERLAYS ================= */
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;}
+.card{background:var(--card); border:1px solid var(--board-border); border-radius:18px;
+  padding:26px 22px; width:100%; max-width:340px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.card h2{margin:0 0 8px; font-size:24px;}
+.card p{color:var(--muted); font-size:14px; line-height:1.5; margin:0 0 18px;}
+.ov-btns{display:flex; gap:10px;}
+.ov-btns button{flex:1; padding:12px; border-radius:12px; border:1px solid var(--btn-border);
+  background:var(--accent); color:#fff; font-size:15px; font-weight:700; cursor:pointer;}
+[data-theme="paper"] .ov-btns button, [data-theme="classic"] .ov-btns button{color:#fff;}
+.ov-btns button.ghost{background:var(--btn); color:var(--btn-text);}
+.theme-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+.theme-opt{border:2px solid var(--btn-border); border-radius:12px; padding:10px; cursor:pointer; background:var(--btn);}
+.theme-opt.active{border-color:var(--accent);}
+.theme-opt .sw{height:34px; border-radius:8px; margin-bottom:6px;}
+.theme-opt span{font-size:13px; font-weight:600; color:var(--btn-text);}
+.size-grid{display:flex; gap:10px; margin-bottom:18px;}
+.size-grid button{flex:1; padding:10px; border-radius:10px; border:2px solid var(--btn-border);
+  background:var(--btn); color:var(--btn-text); font-weight:700; cursor:pointer;}
+.size-grid button.active{border-color:var(--accent);}
+#themeClose{width:100%; padding:12px; border-radius:12px; border:1px solid var(--btn-border);
+  background:var(--accent); color:#fff; font-size:15px; font-weight:700; cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>123</h1>
+      <p class="tag">a 2048-style number puzzle</p>
+    </div>
+    <div class="scores">
+      <div class="score-box"><span>SCORE</span><b id="score">0</b></div>
+      <div class="score-box"><span>BEST</span><b id="best">0</b></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnNew">↺ New</button>
+    <button id="btnUndo">⤺ Undo <i id="undoCount">5</i></button>
+    <button id="btnDaily">📅 Daily</button>
+    <button id="btnTheme">🎨 Theme</button>
+  </div>
+
+  <div id="dailyBadge" class="daily-badge hidden">📅 Daily challenge · <span id="dailyDate"></span> · everyone gets the same board</div>
+
+  <div id="boardWrap">
+    <div id="board">
+      <div id="cells"></div>
+      <div id="tiles"></div>
+    </div>
+  </div>
+
+  <p class="hint">Swipe, drag, or use arrow keys / WASD.<br>Real math, every merge:<br>
+  <b>1 + 2 = 3 → 6 → 12 → 24 → … → 1536</b></p>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div id="overlay" class="overlay hidden">
+  <div class="card">
+    <h2 id="ovTitle"></h2>
+    <p id="ovText"></p>
+    <div class="ov-btns">
+      <button id="ovPrimary"></button>
+      <button id="ovSecondary" class="ghost hidden"></button>
+    </div>
+  </div>
+</div>
+
+<div id="themePanel" class="overlay hidden">
+  <div class="card">
+    <h2>Theme</h2>
+    <div class="theme-grid" id="themeGrid"></div>
+    <h2>Board size</h2>
+    <div class="size-grid" id="sizeGrid"></div>
+    <button id="themeClose">Done</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= 123 — game logic =================
+   Real-math merge rules: 1+2=3, then identical tiles double
+   (3+3=6, 6+6=12, ...). 1+1 and 2+2 never merge.
+   Reach 1536 to win. */
+
+/* ---------- MONETIZATION HOOKS (web = no-ops; wire in native wrapper) ----------
+   window.G123_ADS = {
+     showRewarded: function(cb){ cb(true); },  // rewarded video → cb(true) if watched
+     removeAdsOwned: function(){ return false; }
+   };
+   Future hooks: undo beyond free count → rewarded ad; remove-ads IAP → hide banners.
+------------------------------------------------------------------------------ */
+
+const TIERS = [1, 2, 3, 6, 12, 24, 48, 96, 192, 384, 768, 1536];
+const WIN_TILE = 1536;
+// Real math: 1+2=3; identical tiles merge only from 3 up (3+3=6, 6+6=12, ...).
+const canMerge = (a, b) => (a === b && a >= 3) || (a + b === 3);
+const mergeVal = (a, b) => (a + b === 3 ? 3 : a + b);
+const FREE_UNDOS = 5;
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('g123_' + k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('g123_' + k, JSON.stringify(v)); }catch(e){} }
+};
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function seedFrom(str){
+  let h = 1779033703 ^ str.length;
+  for(let i = 0; i < str.length; i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return h >>> 0;
+}
+
+const S = {
+  size: store.get('size', 4),
+  grid: [], tileById: new Map(), els: new Map(), nextId: 1,
+  score: 0, best: store.get('best', 0),
+  undos: FREE_UNDOS, history: [],
+  over: false, won: false, keepPlaying: false,
+  mode: 'normal', rng: Math.random, seedStr: '',
+  animating: false,
+  stats: Object.assign({games: 0, maxTile: 1, merges: 0}, store.get('stats', {})),
+  _tw: 0, _gap: 0
+};
+
+const boardEl = document.getElementById('board');
+const cellsEl = document.getElementById('cells');
+const tilesEl = document.getElementById('tiles');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+const undoCountEl = document.getElementById('undoCount');
+const statsEl = document.getElementById('stats');
+const overlayEl = document.getElementById('overlay');
+const dailyBadge = document.getElementById('dailyBadge');
+
+/* ---------- theme (pure CSS variables — never touches logic) ---------- */
+const THEMES = [
+  {id: 'glass',   name: 'Glass',   sw: 'linear-gradient(135deg,#7c3aed,#f0abfc)'},
+  {id: 'paper',   name: 'Paper',   sw: 'linear-gradient(135deg,#f7f1de,#d3bf92)'},
+  {id: 'neon',    name: 'Neon',    sw: 'linear-gradient(135deg,#050510,#22d3ee)'},
+  {id: 'classic', name: 'Classic', sw: 'linear-gradient(135deg,#faf8ef,#edc850)'}
+];
+function applyTheme(id){
+  document.documentElement.dataset.theme = id;
+  store.set('theme', id);
+  document.querySelectorAll('.theme-opt').forEach(b => b.classList.toggle('active', b.dataset.theme === id));
+}
+
+/* ---------- board setup ---------- */
+function newGame(mode){
+  S.mode = mode || 'normal';
+  S.size = store.get('size', 4);
+  S.grid = Array.from({length: S.size}, () => Array(S.size).fill(null));
+  S.tileById.clear();
+  S.els.forEach(el => el.remove()); S.els.clear();
+  S.nextId = 1; S.score = 0; S.undos = FREE_UNDOS; S.history = [];
+  S.over = false; S.won = false; S.keepPlaying = false; S.animating = false;
+  if(S.mode === 'daily'){
+    const d = new Date();
+    S.seedStr = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    S.rng = mulberry32(seedFrom('g123' + S.seedStr));
+  } else { S.rng = Math.random; S.seedStr = ''; }
+  spawnTile(); spawnTile();
+  layout();
+  hideOverlay();
+  S.stats.games++; store.set('stats', S.stats);
+  updateHUD(); updateDailyBadge();
+}
+
+function spawnTile(){
+  const cells = [];
+  for(let r = 0; r < S.size; r++) for(let c = 0; c < S.size; c++)
+    if(!S.grid[r][c]) cells.push([r, c]);
+  if(!cells.length) return false;
+  const pick = cells[Math.floor(S.rng() * cells.length)];
+  const roll = S.rng();
+  const v = roll < 0.45 ? 1 : roll < 0.9 ? 2 : 3;
+  const t = {id: S.nextId++, value: v, r: pick[0], c: pick[1], fresh: true};
+  S.grid[pick[0]][pick[1]] = t;
+  S.tileById.set(t.id, t);
+  return true;
+}
+
+/* ---------- rendering ---------- */
+function layout(){
+  const n = S.size, W = boardEl.clientWidth;
+  const gap = Math.max(6, Math.round(W * 0.022));
+  const tw = (W - gap * (n + 1)) / n;
+  S._tw = tw; S._gap = gap;
+  cellsEl.innerHTML = '';
+  for(let r = 0; r < n; r++) for(let c = 0; c < n; c++){
+    const d = document.createElement('div');
+    d.className = 'cell';
+    d.style.width = tw + 'px'; d.style.height = tw + 'px';
+    d.style.transform = 'translate(' + (gap + c * (tw + gap)) + 'px,' + (gap + r * (tw + gap)) + 'px)';
+    cellsEl.appendChild(d);
+  }
+  S.tileById.forEach(t => syncEl(t, false));
+}
+
+function placeEl(el, r, c){
+  const tw = S._tw, gap = S._gap;
+  el.style.width = tw + 'px'; el.style.height = tw + 'px';
+  let fs = tw > 92 ? 34 : tw > 72 ? 28 : tw > 56 ? 22 : 17;
+  el.style.transform = 'translate(' + (gap + c * (tw + gap)) + 'px,' + (gap + r * (tw + gap)) + 'px)';
+  el.style.fontSize = fs + 'px';
+  return el;
+}
+
+function syncEl(t, pop){
+  let el = S.els.get(t.id);
+  if(!el){
+    el = document.createElement('div');
+    el.className = 'tile';
+    S.els.set(t.id, el);
+    tilesEl.appendChild(el);
+    if(t.fresh){ el.classList.add('appear'); t.fresh = false; }
+  }
+  el.textContent = t.value;
+  el.dataset.tier = TIERS.indexOf(t.value);
+  // shrink font for 3-4 digit tiles
+  placeEl(el, t.r, t.c);
+  const len = String(t.value).length;
+  if(len >= 4) el.style.fontSize = (parseFloat(el.style.fontSize) * 0.62) + 'px';
+  else if(len === 3) el.style.fontSize = (parseFloat(el.style.fontSize) * 0.8) + 'px';
+  if(pop){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+}
+
+function removeEl(id){
+  const el = S.els.get(id);
+  if(el){ el.remove(); S.els.delete(id); }
+}
+
+/* ---------- core move ---------- */
+function snapshot(){
+  return {cells: S.grid.map(row => row.map(t => t ? t.value : 0)), score: S.score};
+}
+
+function move(dx, dy){
+  if(S.over || S.animating) return;
+  const n = S.size, g = S.grid;
+  const snap = snapshot();
+  const rOrd = [...Array(n).keys()], cOrd = [...Array(n).keys()];
+  if(dy > 0) rOrd.reverse();
+  if(dx > 0) cOrd.reverse();
+  const mergedIds = new Set();
+  const anims = [];
+  let moved = false, gained = 0;
+
+  for(const r of rOrd) for(const c of cOrd){
+    const t = g[r][c];
+    if(!t) continue;
+    let nr = r, nc = c, target = null;
+    for(;;){
+      const tr = nr + dy, tc = nc + dx;
+      if(tr < 0 || tr >= n || tc < 0 || tc >= n) break;
+      const o = g[tr][tc];
+      if(!o){ nr = tr; nc = tc; continue; }
+      if(canMerge(o.value, t.value) && !mergedIds.has(o.id) && !mergedIds.has(t.id)){ target = o; nr = tr; nc = tc; }
+      break;
+    }
+    if(nr === r && nc === c) continue;
+    moved = true;
+    g[r][c] = null;
+    if(target){
+      let nv = mergeVal(t.value, target.value);
+      if(nv > WIN_TILE) nv = WIN_TILE; // cap at max tier: endless play stays safe
+      gained += nv;
+      const m = {id: S.nextId++, value: nv, r: nr, c: nc, fresh: false};
+      mergedIds.add(m.id); mergedIds.add(t.id); mergedIds.add(target.id);
+      g[nr][nc] = m;
+      S.tileById.set(m.id, m);
+      S.tileById.delete(t.id); S.tileById.delete(target.id);
+      anims.push({a: t, b: target, m: m, tr: nr, tc: nc});
+      S.stats.merges++;
+      if(nv > S.stats.maxTile) S.stats.maxTile = nv;
+    } else {
+      t.r = nr; t.c = nc;
+      g[nr][nc] = t;
+      anims.push({a: t, tr: nr, tc: nc});
+    }
+  }
+  if(!moved) return;
+
+  S.history.push(snap);
+  if(S.history.length > 60) S.history.shift();
+  S.animating = true;
+
+  for(const an of anims){
+    const elA = S.els.get(an.a.id);
+    if(elA) placeEl(elA, an.tr, an.tc);
+    if(an.b){ const elB = S.els.get(an.b.id); if(elB) placeEl(elB, an.tr, an.tc); }
+  }
+  if(gained > 0 && navigator.vibrate){ try{ navigator.vibrate(12); }catch(e){} }
+  updateScore(S.score + gained);
+
+  setTimeout(() => {
+    for(const an of anims){
+      if(an.m){ removeEl(an.a.id); removeEl(an.b.id); syncEl(an.m, true); }
+    }
+    spawnTile();
+    S.tileById.forEach(t => { if(!S.els.has(t.id)) syncEl(t, false); });
+    S.animating = false;
+    store.set('stats', S.stats);
+    updateHUD();
+    checkWin();
+    checkOver();
+  }, 130);
+}
+
+function undo(){
+  if(S.animating || !S.history.length || S.undos <= 0 || S.over) return;
+  const s = S.history.pop();
+  S.undos--;
+  S.tileById.clear();
+  S.els.forEach(el => el.remove()); S.els.clear();
+  S.grid = s.cells.map((row, r) => row.map((v, c) => {
+    if(!v) return null;
+    const t = {id: S.nextId++, value: v, r: r, c: c, fresh: false};
+    S.tileById.set(t.id, t);
+    return t;
+  }));
+  S.tileById.forEach(t => syncEl(t, false));
+  S.score = s.score;
+  updateHUD();
+}
+
+function movesAvailable(){
+  const n = S.size, g = S.grid;
+  for(let r = 0; r < n; r++) for(let c = 0; c < n; c++){
+    const t = g[r][c];
+    if(!t) return true;
+    if(c + 1 < n && g[r][c + 1] && canMerge(g[r][c + 1].value, t.value)) return true;
+    if(r + 1 < n && g[r + 1][c] && canMerge(g[r + 1][c].value, t.value)) return true;
+  }
+  return false;
+}
+
+function checkWin(){
+  if(S.won || S.keepPlaying || S.over) return;
+  let mx = 0;
+  S.grid.forEach(row => row.forEach(t => { if(t && t.value > mx) mx = t.value; }));
+  if(mx >= WIN_TILE){
+    S.won = true;
+    showOverlay('🎉 You reached 1536!',
+      'Legendary. Your score: ' + S.score + '. Keep going for an even higher score?',
+      'Keep going', () => { S.keepPlaying = true; hideOverlay(); },
+      'New game', () => newGame(S.mode));
+  }
+}
+
+function checkOver(){
+  if(S.over || movesAvailable()) return;
+  S.over = true;
+  setTimeout(() => {
+    if(S.mode === 'daily'){
+      const k = 'daily_' + S.seedStr;
+      const prev = store.get(k, 0);
+      if(S.score > prev) store.set(k, S.score);
+    }
+    showOverlay('No more moves',
+      'Score: ' + S.score + ' · Best: ' + S.best + (S.mode === 'daily' ? '<br>Daily best: ' + store.get('daily_' + S.seedStr, S.score) : ''),
+      'Try again', () => newGame(S.mode));
+  }, 400);
+}
+
+/* ---------- HUD / overlays ---------- */
+function updateScore(v){
+  S.score = v;
+  if(S.score > S.best){ S.best = S.score; store.set('best', S.best); }
+  scoreEl.textContent = S.score;
+  bestEl.textContent = S.best;
+}
+function updateHUD(){
+  scoreEl.textContent = S.score;
+  bestEl.textContent = S.best;
+  undoCountEl.textContent = S.undos;
+  const st = S.stats;
+  statsEl.innerHTML = '🎮 ' + st.games + ' games · 🔝 max tile <b>' + st.maxTile + '</b> · 🔀 ' + st.merges + ' merges';
+}
+function updateDailyBadge(){
+  if(S.mode === 'daily'){
+    dailyBadge.classList.remove('hidden');
+    document.getElementById('dailyDate').textContent = S.seedStr;
+  } else dailyBadge.classList.add('hidden');
+}
+function showOverlay(title, text, pLabel, pFn, sLabel, sFn){
+  document.getElementById('ovTitle').textContent = title;
+  document.getElementById('ovText').innerHTML = text;
+  const p = document.getElementById('ovPrimary');
+  const s = document.getElementById('ovSecondary');
+  p.textContent = pLabel;
+  p.onclick = pFn;
+  if(sLabel){ s.textContent = sLabel; s.onclick = sFn; s.classList.remove('hidden'); }
+  else s.classList.add('hidden');
+  overlayEl.classList.remove('hidden');
+}
+function hideOverlay(){ overlayEl.classList.add('hidden'); }
+
+/* ---------- theme panel ---------- */
+function buildThemePanel(){
+  const tg = document.getElementById('themeGrid');
+  tg.innerHTML = '';
+  THEMES.forEach(th => {
+    const b = document.createElement('button');
+    b.className = 'theme-opt';
+    b.dataset.theme = th.id;
+    b.innerHTML = '<div class="sw" style="background:' + th.sw + '"></div><span>' + th.name + '</span>';
+    b.onclick = () => applyTheme(th.id);
+    tg.appendChild(b);
+  });
+  const sg = document.getElementById('sizeGrid');
+  sg.innerHTML = '';
+  [4, 5, 6].forEach(n => {
+    const b = document.createElement('button');
+    b.textContent = n + '×' + n;
+    b.classList.toggle('active', store.get('size', 4) === n);
+    b.onclick = () => {
+      store.set('size', n);
+      sg.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      newGame(S.mode);
+    };
+    sg.appendChild(b);
+  });
+}
+
+/* ---------- input: swipe (touch + mouse via Pointer Events) + keyboard ---------- */
+let pStart = null;
+boardEl.addEventListener('pointerdown', e => { pStart = {x: e.clientX, y: e.clientY}; });
+boardEl.addEventListener('pointercancel', () => { pStart = null; });
+window.addEventListener('pointerup', e => {
+  if(!pStart) return;
+  const dx = e.clientX - pStart.x, dy = e.clientY - pStart.y;
+  pStart = null;
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  if(Math.max(ax, ay) < 24) return;               // pixel-perfect: ignore accidental taps
+  if(ax > ay) move(dx > 0 ? 1 : -1, 0);           // dominant axis wins — no misreads
+  else move(0, dy > 0 ? 1 : -1);
+});
+window.addEventListener('keydown', e => {
+  const k = e.key;
+  let d = null;
+  if(k === 'ArrowUp' || k === 'w' || k === 'W') d = [0, -1];
+  else if(k === 'ArrowDown' || k === 's' || k === 'S') d = [0, 1];
+  else if(k === 'ArrowLeft' || k === 'a' || k === 'A') d = [-1, 0];
+  else if(k === 'ArrowRight' || k === 'd' || k === 'D') d = [1, 0];
+  else if((k === 'u' || k === 'U' || k === 'z' || k === 'Z') && !e.metaKey && !e.ctrlKey){ undo(); return; }
+  if(d){ e.preventDefault(); move(d[0], d[1]); }
+});
+
+/* ---------- wire up ---------- */
+document.getElementById('btnNew').onclick = () => newGame('normal');
+document.getElementById('btnUndo').onclick = undo;
+document.getElementById('btnDaily').onclick = () => newGame('daily');
+document.getElementById('btnTheme').onclick = () => {
+  buildThemePanel();
+  document.getElementById('themePanel').classList.remove('hidden');
+};
+document.getElementById('themeClose').onclick = () => document.getElementById('themePanel').classList.add('hidden');
+window.addEventListener('resize', layout);
+
+/* ---------- init ---------- */
+applyTheme(store.get('theme', 'glass'));
+newGame('normal');
+</script>
+</body>
+</html>
